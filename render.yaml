@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: hive-reclaim
+    runtime: python
+    plan: free
+    branch: master
+    buildCommand: pip install -r requirements.txt
+    startCommand: python hive_reclaim.py
+    envVars:
+      - key: HIVE_KEY
+        value: hive_internal_125e04e071e8829be631ea0216dd4a0c9b707975fcecaf8c62c6a2ab43327d46
+      - key: PORT
+        value: "8000"
+      - key: BASESCAN_API_KEY
+        sync: false

@@ -1,0 +1,48 @@
+{
+  "did": "did:hive:reclaim",
+  "name": "HiveReclaim",
+  "version": "1.0.0",
+  "role": "reclaim_agent",
+  "tier": "VOID",
+  "description": "Mempool watcher and marked capital recovery microservice for A2A agent networks on Base L2.",
+  "capabilities": [
+    "mempool_watch",
+    "usdc_transfer_detection",
+    "drip_id_matching",
+    "recovery_event_logging",
+    "blacklist_broadcast",
+    "watchlist_management"
+  ],
+  "network": "base-l2",
+  "watched_assets": ["USDC"],
+  "usdc_contract": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+  "scan_interval_seconds": 300,
+  "endpoints": {
+    "health": "GET /health",
+    "watchlist": "GET /reclaim/watchlist",
+    "watch": "POST /reclaim/watch",
+    "unwatch": "DELETE /reclaim/watch/{address}",
+    "events": "GET /reclaim/events",
+    "recoveries": "GET /reclaim/recoveries",
+    "scan": "POST /reclaim/scan",
+    "marked": "GET /reclaim/marked/{drip_id}",
+    "frontrun_explain": "GET /reclaim/frontrun/explain"
+  },
+  "integrations": {
+    "hivevault_blacklist": "https://hivevault.onrender.com/blacklist",
+    "hiveforge_pheromones": "https://hiveforge.onrender.com/pheromones",
+    "hive_pulse": "https://hive-pulse.onrender.com/pulse/meet"
+  },
+  "preloaded_watchlist": [
+    {
+      "address": "0x2dCDEA8a708f1FDECA5e2E59d4cb70Bd2E9BdEC8",
+      "reason": "swept $25 USDC marked capital from Hive2 agent wallet on 2026-04-23",
+      "drip_ids": ["drip_hive2_initial"]
+    }
+  ],
+  "legal_note": "Mempool monitoring and gas auction competition is legally equivalent to MEV bot activity — a standard, legal practice on Ethereum and Base L2.",
+  "contact": {
+    "owner": "Steve Rotzin",
+    "email": "srotzin@me.com"
+  }
+}

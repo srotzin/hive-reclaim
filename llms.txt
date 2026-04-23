@@ -1,0 +1,46 @@
+# HiveReclaim
+
+> Mempool watcher and marked capital recovery microservice for A2A agent networks on Base L2.
+
+## Summary
+
+HiveReclaim is a FastAPI microservice that monitors known bad-actor Ethereum addresses (Base L2) for outbound USDC transactions containing cryptographically marked capital. Capital is marked via unique `drip_id` values embedded in HiveVault drip transaction calldata. When outbound transactions are detected from watched addresses, HiveReclaim logs the event, flags it as potential marked capital recovery, and broadcasts blacklist signals to HiveVault and HiveForge.
+
+## DID
+
+- DID: `did:hive:reclaim`
+- Role: `reclaim_agent`
+- Tier: `VOID`
+
+## Key Capabilities
+
+- Watchlist management (add/remove/list bad-actor addresses)
+- Periodic Basescan polling every 5 minutes for outbound USDC transfers
+- drip_id matching for cryptographically marked capital
+- Recovery event logging (in-memory + /tmp/reclaim_events.json)
+- Blacklist broadcast to HiveVault and HiveForge on detection
+- Educational front-run recovery explanation endpoint
+
+## API Base
+
+- Health: GET /health
+- Watchlist: GET/POST /reclaim/watchlist, POST /reclaim/watch, DELETE /reclaim/watch/{address}
+- Events: GET /reclaim/events
+- Recoveries: GET /reclaim/recoveries
+- Manual scan: POST /reclaim/scan
+- Drip check: GET /reclaim/marked/{drip_id}
+- Front-run info: GET /reclaim/frontrun/explain
+
+## Pre-loaded Watchlist
+
+- Address: 0x2dCDEA8a708f1FDECA5e2E59d4cb70Bd2E9BdEC8
+- Reason: swept $25 USDC marked capital from Hive2 agent wallet on 2026-04-23
+- drip_ids: [drip_hive2_initial]
+
+## Legal Note
+
+Monitoring public mempool data and competing in gas auctions is legally equivalent to MEV (Maximal Extractable Value) bot activity — a standard, legal practice in the Ethereum/Base ecosystem.
+
+## Source
+
+https://github.com/srotzin/hive-reclaim
