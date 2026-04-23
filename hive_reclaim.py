@@ -20,6 +20,41 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
+# ---------------------------------------------------------------------------
+# HiveAI config
+# ---------------------------------------------------------------------------
+HIVEAI_URL   = "https://hive-ai-1.onrender.com/v1/chat/completions"
+HIVEAI_KEY   = "hive_internal_125e04e071e8829be631ea0216dd4a0c9b707975fcecaf8c62c6a2ab43327d46"
+HIVEAI_MODEL = "meta-llama/llama-3.1-8b-instruct"
+
+
+async def call_hive_ai(system_prompt: str, user_message: str, max_tokens: int = 150) -> str:
+    """Call HiveAI; graceful static fallback on any failure."""
+    try:
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            resp = await client.post(
+                HIVEAI_URL,
+                headers={"Authorization": f"Bearer {HIVEAI_KEY}"},
+                json={
+                    "model": HIVEAI_MODEL,
+                    "max_tokens": max_tokens,
+                    "messages": [
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user",   "content": user_message},
+                    ],
+                },
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            return data["choices"][0]["message"]["content"].strip()
+    except Exception as exc:
+        logger.warning("HiveAI fallback: %s", exc)
+        return (
+            "HiveReclaim is monitoring this address for outbound USDC flows and marked capital signals. "
+            "Immediate action: add address to watchlist and enable periodic scanning to detect "
+            "any recovery opportunities."
+        )
+
 load_dotenv()
 
 # ---------------------------------------------------------------------------
@@ -104,6 +139,11 @@ class WatchRequest(BaseModel):
     address: str
     reason: str = "swept marked capital"
     drip_ids: List[str] = []
+
+
+class RiskBriefRequest(BaseModel):
+    address: str
+    reason: str = "unknown"
 
 
 # ---------------------------------------------------------------------------
@@ -464,6 +504,64 @@ async def frontrun_explain() -> Dict[str, Any]:
             "bots that are a standard part of the Ethereum ecosystem. All actions occur on "
             "public blockchain infrastructure."
         ),
+    }
+
+
+# ---------------------------------------------------------------------------
+# AI risk brief endpoint ($0.03/call)
+# ---------------------------------------------------------------------------
+
+@app.post("/reclaim/ai/risk-brief", summary="AI wallet risk brief for HiveReclaim ($0.03/call)")
+async def reclaim_ai_risk_brief(req: RiskBriefRequest) -> Dict[str, Any]:
+    """
+    Assess recovery risk for an address using HiveAI.
+    Body: { address, reason }
+    Price: $0.03 per call.
+    """
+    address = req.address.strip()
+    reason  = req.reason.strip()
+
+    # Check if address is already watched
+    in_watchlist  = address in watchlist
+    known_events  = [e for e in events if e.get("watched_address", "").lower() == address.lower()]
+    known_recoveries = [r for r in recoveries if r.get("watched_address", "").lower() == address.lower()]
+
+    # Heuristic risk level
+    if known_recoveries:
+        risk_level = "high"
+    elif known_events:
+        risk_level = "medium"
+    elif in_watchlist:
+        risk_level = "medium"
+    else:
+        risk_level = "low"
+
+    system_prompt = (
+        "You are HiveReclaim \u2014 the wallet recovery and surveillance layer. "
+        "Assess recovery risk for this address. What signals suggest funds are at risk? "
+        "What action should the agent take immediately? 2-3 sentences."
+    )
+    user_msg = (
+        f"Address: {address}. Reason flagged: {reason}. "
+        f"In watchlist: {in_watchlist}. Known events: {len(known_events)}. "
+        f"Known recoveries: {len(known_recoveries)}. Risk level: {risk_level}."
+    )
+
+    brief = await call_hive_ai(system_prompt, user_msg)
+
+    # Map risk level to recommended action
+    action_map = {
+        "high":   "Initiate immediate front-run recovery scan and broadcast to HiveVault blacklist.",
+        "medium": "Add to watchlist and schedule priority scan within the next cycle.",
+        "low":    "Monitor passively; add to watchlist if additional signals emerge.",
+    }
+
+    return {
+        "success":             True,
+        "brief":               brief,
+        "risk_level":          risk_level,
+        "recommended_action":  action_map[risk_level],
+        "price_usdc":          0.03,
     }
 
 
